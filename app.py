@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 st.set_page_config(page_title="WiMAX Interactive Simulator", layout="wide")
 
@@ -56,7 +57,7 @@ subcarriers = np.arange(-N//2, N//2)
 power = np.zeros(N)
 power[::4] = 1  # allocate every 4th subcarrier
 fig, ax = plt.subplots()
-ax.stem(subcarriers, power, use_line_collection=True)
+ax.stem(subcarriers, power)  # fixed (no use_line_collection)
 ax.set_title("OFDMA Subcarrier Allocation")
 ax.set_xlabel("Subcarrier Index")
 ax.set_ylabel("Power")
@@ -66,8 +67,8 @@ st.pyplot(fig)
 st.header("5️⃣ WiMAX Scheduling Demo")
 traffic_classes = ["UGS", "rtPS", "nrtPS", "BE"]
 slots = 20
-schedule = np.random.choice(traffic_classes, slots, p=[0.3,0.3,0.2,0.2])
-fig2, ax2 = plt.subplots(figsize=(10,2))
+schedule = np.random.choice(traffic_classes, slots, p=[0.3, 0.3, 0.2, 0.2])
+fig2, ax2 = plt.subplots(figsize=(10, 2))
 ax2.bar(range(slots), [1]*slots, tick_label=schedule, color='lightblue')
 ax2.set_title("Simplified WiMAX Slot Scheduling")
 ax2.set_yticks([])
@@ -78,11 +79,9 @@ st.header("6️⃣ QoS Metrics Visualization")
 snr_db = st.slider("Signal-to-Noise Ratio (dB)", 0, 30, 10)
 snr_lin = 10 ** (snr_db/10)
 
-# Bit Error Rate (for QPSK approx)
+# Bit Error Rate (QPSK approximation)
 ber = 0.5 * np.exp(-snr_lin)
-# Throughput (simple efficiency * data rate)
 throughput = data_rate * (1 - ber)
-# Delay & Jitter simulation (randomized for demo)
 delay = np.random.uniform(10, 50) / (snr_db + 1)
 jitter = np.random.uniform(1, 10) / (snr_db + 1)
 plr = ber * 100
@@ -104,5 +103,37 @@ ax3.set_ylabel("BER (log scale)")
 ax3.set_title("BER vs SNR (QPSK Approximation)")
 ax3.grid(True, which="both")
 st.pyplot(fig3)
+
+# --- Real-time Network Monitoring Demo ---
+st.header("7️⃣ Real-Time Network Monitoring")
+run_button = st.button("Start Live Simulation")
+
+if run_button:
+    chart_placeholder = st.empty()
+    x_vals, ber_vals, thr_vals = [], [], []
+    for t in range(30):  # simulate 30 time steps
+        snr_dynamic = snr_db + np.random.uniform(-2, 2)
+        snr_lin_dynamic = 10 ** (snr_dynamic/10)
+        ber_dynamic = 0.5 * np.exp(-snr_lin_dynamic)
+        thr_dynamic = data_rate * (1 - ber_dynamic)
+
+        x_vals.append(t)
+        ber_vals.append(ber_dynamic)
+        thr_vals.append(thr_dynamic/1e6)
+
+        fig4, ax4 = plt.subplots(2, 1, figsize=(6, 4))
+        ax4[0].plot(x_vals, ber_vals, 'r-o')
+        ax4[0].set_title("BER over Time")
+        ax4[0].set_ylabel("BER")
+        ax4[0].grid(True)
+
+        ax4[1].plot(x_vals, thr_vals, 'g-o')
+        ax4[1].set_title("Throughput over Time")
+        ax4[1].set_ylabel("Mbps")
+        ax4[1].set_xlabel("Time (s)")
+        ax4[1].grid(True)
+
+        chart_placeholder.pyplot(fig4)
+        time.sleep(0.3)
 
 st.success("✅ Full WiMAX Simulator covering **all 5 units** is ready!")
